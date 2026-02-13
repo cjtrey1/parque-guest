@@ -30,6 +30,7 @@ interface JobData {
     model: string;
     baseRate: number;
     allowTips: boolean;
+    timing: "AT_PICKUP" | "AT_DROPOFF";
   } | null;
 }
 
@@ -281,10 +282,17 @@ export default function GuestStatusPage() {
   const isPaid = job?.payment_config?.model === "GUEST_PAYS" || job?.payment_config?.model === "PAID";
   const allowTips = job?.payment_config?.allowTips !== false;
   const baseRate = job?.payment_config?.baseRate || 0;
+  const paymentTiming = job?.payment_config?.timing || "AT_PICKUP";
   const isComplete = ["COMPLETED", "CLOSED", "DELIVERED"].includes(status);
   const showRequestButton = ["PARKED", "OVERNIGHT_PARKED"].includes(status);
-  const showPayment = status === "READY" && isPaid && baseRate > 0;
-  const showTipOnly = status === "READY" && !isPaid && allowTips;
+  const showPayment = isPaid && baseRate > 0 && (
+    (paymentTiming === "AT_DROPOFF" && ["QUEUED", "PARKED", "PARKING_IN_PROGRESS"].includes(status)) ||
+    (paymentTiming === "AT_PICKUP" && status === "READY")
+  );
+  const showTipOnly = !isPaid && allowTips && (
+    (paymentTiming === "AT_DROPOFF" && ["QUEUED", "PARKED", "PARKING_IN_PROGRESS"].includes(status)) ||
+    (paymentTiming === "AT_PICKUP" && status === "READY")
+  );
 
   const parkingLocation = [ticket.parking_zone, ticket.parking_level, ticket.parking_spot]
     .filter(Boolean)
